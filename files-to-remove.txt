@@ -1,2 +1,0 @@
-backend/token.json
-.env

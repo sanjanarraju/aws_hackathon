@@ -36,6 +36,84 @@ def extract_json_from_response(text):
             continue
     return None
 
+def times_overlap(schedule1, schedule2):
+    """
+    Check if two schedule entries overlap in time.
+    
+    Args:
+        schedule1, schedule2: Schedule entries with start, end, and days_of_week
+        
+    Returns:
+        True if they overlap, False otherwise
+    """
+    # Check if they share any days
+    days1 = set(schedule1.get('days_of_week', []))
+    days2 = set(schedule2.get('days_of_week', []))
+    
+    if not days1 or not days2 or not days1.intersection(days2):
+        return False
+    
+    # Check if times overlap
+    try:
+        start1 = schedule1.get('start')
+        end1 = schedule1.get('end')
+        start2 = schedule2.get('start')
+        end2 = schedule2.get('end')
+        
+        if not all([start1, end1, start2, end2]):
+            return False
+        
+        # Parse ISO datetime strings
+        from datetime import datetime
+        dt_start1 = datetime.fromisoformat(start1)
+        dt_end1 = datetime.fromisoformat(end1)
+        dt_start2 = datetime.fromisoformat(start2)
+        dt_end2 = datetime.fromisoformat(end2)
+        
+        # Check if time ranges overlap
+        # Two ranges overlap if: start1 < end2 AND start2 < end1
+        return dt_start1 < dt_end2 and dt_start2 < dt_end1
+        
+    except (ValueError, AttributeError):
+        return False
+
+def check_schedule_validity(schedule):
+    """
+    Check if a schedule has any overlapping class times.
+    
+    Args:
+        schedule: List of schedule entries
+        
+    Returns:
+        True if valid (no overlaps), False otherwise
+    """
+    if not schedule or len(schedule) < 2:
+        return True
+    
+    # Check all pairs for overlaps
+    for i in range(len(schedule)):
+        for j in range(i + 1, len(schedule)):
+            if times_overlap(schedule[i], schedule[j]):
+                return False
+    
+    return True
+
+def filter_valid_schedules(schedules):
+    """
+    Filter out schedules that have overlapping class times.
+    
+    Args:
+        schedules: List of schedule options
+        
+    Returns:
+        List of schedule options without overlapping times
+    """
+    valid_schedules = []
+    for schedule_option in schedules:
+        if check_schedule_validity(schedule_option.get('schedule', [])):
+            valid_schedules.append(schedule_option)
+    return valid_schedules
+
 def generate_schedules(specific_courses: str, teacher_preference: str, num_schedules: int = 3):
     """
     Generate course schedules using Claude AI and RateMyProfessor data.
@@ -189,12 +267,18 @@ ORIGINAL DATA WITH DATES AND TIMES:
 TASK:
 Create {num_schedules} different course schedules. For each schedule, also provide pros and cons.
 
+CRITICAL REQUIREMENTS:
+- NO OVERLAPPING TIMES: Within each schedule, classes MUST be scheduled at different times
+- Each course can only have ONE section per schedule (no duplicates)
+- Classes cannot overlap if they share any common days (e.g., both Monday+Wednesday)
+
 For each schedule:
 1. For each course (by class_number), pick ONE section with the best professor matching the preferences
-2. Use Start Date for the first class meeting
-3. Parse Meeting Patterns to get days and times
-4. Use End Date for the semester end
-5. Provide brief pros and cons based on professor quality, schedule convenience, time preferences
+2. Ensure NO two classes overlap in time (check days_of_week and start/end times)
+3. Use Start Date for the first class meeting
+4. Parse Meeting Patterns to get days and times
+5. Use End Date for the semester end
+6. Provide brief pros and cons based on professor quality, schedule convenience, time preferences
 
 OUTPUT FORMAT (JSON array with schedule and analysis):
 [
@@ -243,5 +327,17 @@ OUTPUT ONLY THE JSON ARRAY - NO OTHER TEXT.
                 'cons': []
             })
     
-    return total_schedules
+    # Filter out schedules with overlapping times
+    valid_schedules = filter_valid_schedules(total_schedules)
+    
+    # If we lost some schedules due to overlaps, log it
+    if len(valid_schedules) < len(total_schedules):
+        print(f"⚠️ Filtered out {len(total_schedules) - len(valid_schedules)} schedules with overlapping times")
+    
+    # If no valid schedules remain, return the original (better than nothing)
+    if not valid_schedules:
+        print("⚠️ No schedules passed overlap check, returning all schedules")
+        return total_schedules
+    
+    return valid_schedules
 

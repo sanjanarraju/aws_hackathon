@@ -361,9 +361,9 @@ export default function App() {
                         type="button"
                         onClick={() => toggleDayOfWeek(day.toLowerCase())}
                         variant={daysOfWeek.includes(day.toLowerCase()) ? 'default' : 'outline'}
-                        className={`p-3 border-2 rounded-xl transition-all ${
+                        className={`p-3 border-3 rounded-xl transition-all ${
                           daysOfWeek.includes(day.toLowerCase())
-                            ? 'bg-[#B30738] text-white border-[#B30738]'
+                            ? 'bg-gradient-to-br from-red-300 to-red-400 text-white border-4 border-red-600 font-bold shadow-xl shadow-red-400/50 ring-4 ring-red-200 scale-110'
                             : 'border-gray-300 bg-white hover:border-[#B30738]'
                         }`}
                       >
@@ -387,7 +387,7 @@ export default function App() {
                       variant={classTimes.includes(time.toLowerCase()) ? 'default' : 'outline'}
                       className={`p-4 border-4 rounded-2xl transition-all text-center ${
                         classTimes.includes(time.toLowerCase())
-                          ? 'bg-[#B30738] text-white border-[#B30738] hover:shadow-lg'
+                          ? 'bg-gradient-to-br from-red-300 to-red-400 text-white border-4 border-red-600 hover:shadow-xl font-bold shadow-xl shadow-red-400/50 ring-4 ring-red-200 scale-110'
                           : 'border-gray-200 bg-white hover:border-[#B30738] hover:bg-red-50'
                       }`}
                     >
@@ -567,39 +567,73 @@ export default function App() {
 
                         {/* Schedule details */}
                         <div className="space-y-3">
-                          {scheduleOption.schedule && scheduleOption.schedule.map((course: any, courseIndex: number) => (
-                            <div 
-                              key={courseIndex} 
-                              className={`border-l-4 pl-4 py-3 bg-white rounded-r-lg transition-all ${
-                                selectedScheduleIndex === index 
-                                  ? 'border-[#B30738] shadow-lg border-4' 
-                                  : 'border-gray-300'
-                              }`}
-                            >
-                              <h4 className={`font-bold text-lg ${
-                                selectedScheduleIndex === index 
-                                  ? 'text-[#B30738]' 
-                                  : 'text-gray-900'
-                              }`}>{course.summary}</h4>
-                              <p className="text-gray-600 text-sm font-medium">👨‍🏫 {course.description}</p>
-                              <div className="flex flex-wrap gap-3 mt-2 text-xs">
-                                <span className={`px-2 py-1 rounded ${
+                          {scheduleOption.schedule && scheduleOption.schedule.map((course: any, courseIndex: number) => {
+                            // Parse times from the course data
+                            const startTime = course.start ? new Date(course.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : null;
+                            const endTime = course.end ? new Date(course.end).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : null;
+                            const timeRange = startTime && endTime ? `${startTime} - ${endTime}` : null;
+                            
+                            // Format days of week
+                            const dayMap: { [key: string]: string } = {
+                              'MO': 'Mon',
+                              'TU': 'Tue',
+                              'WE': 'Wed',
+                              'TH': 'Thu',
+                              'FR': 'Fri',
+                              'SA': 'Sat',
+                              'SU': 'Sun'
+                            };
+                            const formattedDays = course.days_of_week ? course.days_of_week.map((d: string) => dayMap[d] || d).join(', ') : null;
+                            
+                            return (
+                              <div 
+                                key={courseIndex} 
+                                className={`border-l-4 pl-4 py-3 bg-gradient-to-r from-white to-gray-50 rounded-r-lg transition-all ${
                                   selectedScheduleIndex === index 
-                                    ? 'text-gray-700 bg-red-50' 
-                                    : 'text-gray-500 bg-gray-50'
-                                }`}>📍 {course.location || 'TBA'}</span>
-                                {course.days_of_week && (
-                                  <span className={`px-2 py-1 rounded ${
+                                    ? 'border-[#B30738] shadow-lg border-4' 
+                                    : 'border-gray-300'
+                                }`}
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex-1">
+                                    <h4 className={`font-bold text-lg mb-2 ${
+                                      selectedScheduleIndex === index 
+                                        ? 'text-[#B30738]' 
+                                        : 'text-gray-900'
+                                    }`}>{course.summary}</h4>
+                                    <p className="text-gray-700 text-sm font-medium">👨‍🏫 {course.description}</p>
+                                  </div>
+                                  {timeRange && (
+                                    <div className={`px-3 py-2 rounded-lg font-bold text-lg whitespace-nowrap ${
+                                      selectedScheduleIndex === index 
+                                        ? 'bg-red-100 text-[#B30738] border-2 border-[#B30738]' 
+                                        : 'bg-blue-50 text-blue-700 border-2 border-blue-300'
+                                    }`}>
+                                      ⏰ {timeRange}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex flex-wrap gap-2 mt-3">
+                                  {formattedDays && (
+                                    <span className={`px-3 py-1.5 rounded-full text-sm font-semibold ${
+                                      selectedScheduleIndex === index 
+                                        ? 'text-[#B30738] bg-red-50 border border-[#B30738]' 
+                                        : 'text-blue-700 bg-blue-50 border border-blue-300'
+                                    }`}>
+                                      📅 {formattedDays}
+                                    </span>
+                                  )}
+                                  <span className={`px-3 py-1.5 rounded-full text-sm ${
                                     selectedScheduleIndex === index 
-                                      ? 'text-[#B30738] bg-red-50' 
-                                      : 'text-blue-600 bg-blue-50'
+                                      ? 'text-gray-800 bg-gray-100' 
+                                      : 'text-gray-600 bg-gray-50'
                                   }`}>
-                                    📅 {course.days_of_week.join(', ')}
+                                    📍 {course.location || 'TBA'}
                                   </span>
-                                )}
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     ))}

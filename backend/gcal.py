@@ -16,7 +16,31 @@ def get_service():
     # Get the directory where gcal.py is located
     script_dir = os.path.dirname(os.path.abspath(__file__))
     token_file = os.path.join(script_dir, 'token.json')
-    creds_file = os.path.join(script_dir, 'client_secret_974602177125-dtuesgj2qfbjp7sgfk4b1vt4hc38ng7f.apps.googleusercontent.com.json')
+    
+    # Try different possible credential file names
+    possible_creds_files = [
+        'client_secret_974602177125-dtuesgj2qfbjp7sgfk4b1vt4hc38ng7f.apps.googleusercontent.com.json',
+        'credentials.json',
+        'client_secret.json'
+    ]
+    
+    creds_file = None
+    for filename in possible_creds_files:
+        full_path = os.path.join(script_dir, filename)
+        if os.path.exists(full_path):
+            creds_file = full_path
+            break
+    
+    if not creds_file:
+        raise FileNotFoundError(
+            f"❌ Google OAuth credentials file not found!\n"
+            f"Please place one of these files in the backend directory:\n"
+            f"  • credentials.json\n"
+            f"  • client_secret.json\n"
+            f"  • client_secret_974602177125-dtuesgj2qfbjp7sgfk4b1vt4hc38ng7f.apps.googleusercontent.com.json\n\n"
+            f"You can download your Google OAuth credentials from:\n"
+            f"https://console.cloud.google.com/apis/credentials"
+        )
     
     if os.path.exists(token_file):
         creds = Credentials.from_authorized_user_file(token_file, SCOPES)
